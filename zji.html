@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>换汇利润计算器</title>
+
+<style>
+:root{
+  --main:#2563eb;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --border:#e5e7eb;
+  --green:#16a34a;
+  --red:#dc2626;
+}
+
+*{box-sizing:border-box}
+
+body{
+  margin:0;
+  background:var(--bg);
+  font-family:
+    system-ui,-apple-system,
+    "Segoe UI","PingFang SC",
+    "Microsoft YaHei",Arial;
+}
+
+.wrap{
+  max-width:760px;
+  margin:30px auto;
+  padding:0 15px;
+}
+
+h1{
+  margin:0 0 16px;
+  font-size:22px;
+  color:var(--main);
+  text-align:center;
+}
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:18px;
+  margin-bottom:16px;
+  box-shadow:0 4px 10px rgba(0,0,0,.04);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+label{
+  font-size:13px;
+  color:#374151;
+  margin-bottom:6px;
+  display:block;
+}
+
+input{
+  width:100%;
+  padding:12px;
+  border:1px solid var(--border);
+  border-radius:12px;
+  font-size:15px;
+  background:#fff;
+  transition:.2s;
+}
+
+input:focus{
+  outline:none;
+  border-color:var(--main);
+  box-shadow:0 0 0 2px rgba(37,99,235,.15);
+}
+
+.kpi{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+}
+
+.box{
+  background:linear-gradient(180deg,#ffffff,#f8fafc);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:14px;
+  text-align:center;
+}
+
+.t{
+  font-size:13px;
+  color:#6b7280;
+}
+
+.v{
+  margin-top:6px;
+  font-size:22px;
+  font-weight:800;
+  color:#111827;
+  font-variant-numeric:tabular-nums;
+}
+
+.tag{
+  margin-top:6px;
+  font-size:14px;
+  font-weight:600;
+  min-height:20px;
+}
+
+.pos{color:var(--green)}
+.neg{color:var(--red)}
+
+@media(max-width:680px){
+  .grid,.kpi{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+
+<div class="wrap">
+
+<h1>换汇利润计算器</h1>
+
+<!-- 输入区 -->
+<div class="card">
+
+  <div class="grid">
+
+    <div>
+      <label>客人马币金额（MYR）</label>
+      <input id="MYR_amt" type="number" step="0.01">
+    </div>
+
+    <div>
+      <label>你给客人报价（RMB/MYR）</label>
+      <input id="B_M" type="number" step="0.0001">
+    </div>
+
+    <div>
+      <label>公司 USDT 汇率（RMB/USDT）</label>
+      <input id="A_U" type="number" step="0.0001">
+    </div>
+
+    <div>
+      <label>你用马币买 USDT（MYR/USDT）</label>
+      <input id="M_per_U" type="number" step="0.0001">
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- 结果区 -->
+<div class="card">
+
+  <div class="kpi">
+
+    <div class="box">
+      <div class="t">付给客人的人民币</div>
+      <div class="v" id="RMB_pay">-</div>
+    </div>
+
+    <div class="box">
+      <div class="t">马币可换 USDT</div>
+      <div class="v" id="U_from_MYR">-</div>
+    </div>
+
+    <div class="box">
+      <div class="t">需付公司 USDT</div>
+      <div class="v" id="U_pay_company">-</div>
+    </div>
+
+    <div class="box">
+      <div class="t">最终利润（RMB）</div>
+      <div class="v" id="Profit_RMB">-</div>
+      <div class="tag" id="Tag"></div>
+    </div>
+
+  </div>
+
+</div>
+
+</div>
+
+
+<script>
+const $ = id => document.getElementById(id);
+
+const parseNum = el => {
+  const s = (el.value ?? "").trim();
+  if(s==="") return NaN;
+  const x = Number(s);
+  return Number.isFinite(x) ? x : NaN;
+};
+
+const f2 = x => Number.isFinite(x) ? x.toFixed(2) : "-";
+
+function reset(){
+  ["RMB_pay","U_from_MYR","U_pay_company","Profit_RMB"]
+  .forEach(id => $(id).textContent = "-");
+  $("Tag").textContent = "";
+  $("Tag").className = "tag";
+}
+
+function calc(){
+
+  const MYR = parseNum($("MYR_amt"));
+  const B_M = parseNum($("B_M"));
+  const A_U = parseNum($("A_U"));
+  const M_U = parseNum($("M_per_U"));
+
+  const ok =
+    Number.isFinite(MYR) && MYR >= 0 &&
+    Number.isFinite(B_M) &&
+    Number.isFinite(A_U) && A_U > 0 &&
+    Number.isFinite(M_U) && M_U > 0;
+
+  if(!ok){ reset(); return; }
+
+  const RMB = MYR * B_M;
+  const U1  = MYR / M_U;
+  const U2  = RMB / A_U;
+  const P   = (U1 - U2) * A_U;
+
+  $("RMB_pay").textContent = f2(RMB)+" RMB";
+  $("U_from_MYR").textContent = f2(U1)+" U";
+  $("U_pay_company").textContent = f2(U2)+" U";
+  $("Profit_RMB").textContent = f2(P)+" RMB";
+
+  const tag = $("Tag");
+  tag.className = "tag";
+
+  if(P>0){ tag.classList.add("pos"); tag.textContent="✔ 赚钱"; }
+  else if(P<0){ tag.classList.add("neg"); tag.textContent="✘ 亏钱"; }
+  else{ tag.textContent="— 不赚不亏"; }
+}
+
+["MYR_amt","B_M","A_U","M_per_U"].forEach(id=>{
+  $(id).addEventListener("input", calc);
+  $(id).addEventListener("change", calc);
+});
+
+// 初始全空
+reset();
+</script>
+
+</body>
+</html>

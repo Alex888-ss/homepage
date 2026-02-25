@@ -2,13 +2,12 @@
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>换汇利润计算器</title>
 
 <style>
 :root{
   --main:#2563eb;
-  --light:#eff6ff;
   --bg:#f8fafc;
   --card:#ffffff;
   --border:#e5e7eb;
@@ -40,7 +39,6 @@ h1{
   text-align:center;
 }
 
-/* 卡片 */
 .card{
   background:var(--card);
   border:1px solid var(--border);
@@ -50,7 +48,6 @@ h1{
   box-shadow:0 4px 10px rgba(0,0,0,.04);
 }
 
-/* 输入区 */
 .grid{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -70,18 +67,16 @@ input{
   border:1px solid var(--border);
   border-radius:12px;
   font-size:15px;
-  background:#f9fafb;
+  background:#fff;
   transition:.2s;
 }
 
 input:focus{
   outline:none;
   border-color:var(--main);
-  background:#fff;
   box-shadow:0 0 0 2px rgba(37,99,235,.15);
 }
 
-/* 结果区 */
 .kpi{
   display:grid;
   grid-template-columns:1fr 1fr;
@@ -113,6 +108,7 @@ input:focus{
   margin-top:6px;
   font-size:14px;
   font-weight:600;
+  min-height:20px;
 }
 
 .pos{color:var(--green)}
@@ -137,22 +133,22 @@ input:focus{
 
     <div>
       <label>客人马币金额（MYR）</label>
-      <input id="MYR_amt" type="number" step="0.01" value="10000">
+      <input id="MYR_amt" type="number" step="0.01">
     </div>
 
     <div>
       <label>你给客人报价（RMB/MYR）</label>
-      <input id="B_M" type="number" step="0.0001" value="1.75">
+      <input id="B_M" type="number" step="0.0001">
     </div>
 
     <div>
       <label>公司 USDT 汇率（RMB/USDT）</label>
-      <input id="A_U" type="number" step="0.0001" value="7.02">
+      <input id="A_U" type="number" step="0.0001">
     </div>
 
     <div>
       <label>你用马币买 USDT（MYR/USDT）</label>
-      <input id="M_per_U" type="number" step="0.0001" value="3.98">
+      <input id="M_per_U" type="number" step="0.0001">
     </div>
 
   </div>
@@ -194,68 +190,65 @@ input:focus{
 
 
 <script>
-const $=id=>document.getElementById(id);
+const $ = id => document.getElementById(id);
 
-const n=v=>{
-  const x=Number(v);
-  return Number.isFinite(x)?x:NaN;
+const parseNum = el => {
+  const s = (el.value ?? "").trim();
+  if(s==="") return NaN;
+  const x = Number(s);
+  return Number.isFinite(x) ? x : NaN;
 };
 
-const f2=x=>Number.isFinite(x)?x.toFixed(2):"-";
+const f2 = x => Number.isFinite(x) ? x.toFixed(2) : "-";
+
+function reset(){
+  ["RMB_pay","U_from_MYR","U_pay_company","Profit_RMB"]
+  .forEach(id => $(id).textContent = "-");
+  $("Tag").textContent = "";
+  $("Tag").className = "tag";
+}
 
 function calc(){
 
-  const MYR=n($("MYR_amt").value);
-  const B_M=n($("B_M").value);
-  const A_U=n($("A_U").value);
-  const M_U=n($("M_per_U").value);
+  const MYR = parseNum($("MYR_amt"));
+  const B_M = parseNum($("B_M"));
+  const A_U = parseNum($("A_U"));
+  const M_U = parseNum($("M_per_U"));
 
-  const ok=
-    MYR>=0 &&
-    Number.isFinite(B_M)&&
-    A_U>0 &&
-    M_U>0;
+  const ok =
+    Number.isFinite(MYR) && MYR >= 0 &&
+    Number.isFinite(B_M) &&
+    Number.isFinite(A_U) && A_U > 0 &&
+    Number.isFinite(M_U) && M_U > 0;
 
-  if(!ok){
-    ["RMB_pay","U_from_MYR","U_pay_company","Profit_RMB"]
-    .forEach(i=>$(i).textContent="-");
-    $("Tag").textContent="";
-    return;
-  }
+  if(!ok){ reset(); return; }
 
-  const RMB=MYR*B_M;
-  const U1=MYR/M_U;
-  const U2=RMB/A_U;
-  const P =(U1-U2)*A_U;
+  const RMB = MYR * B_M;
+  const U1  = MYR / M_U;
+  const U2  = RMB / A_U;
+  const P   = (U1 - U2) * A_U;
 
-  $("RMB_pay").textContent=f2(RMB)+" RMB";
-  $("U_from_MYR").textContent=f2(U1)+" U";
-  $("U_pay_company").textContent=f2(U2)+" U";
-  $("Profit_RMB").textContent=f2(P)+" RMB";
+  $("RMB_pay").textContent = f2(RMB)+" RMB";
+  $("U_from_MYR").textContent = f2(U1)+" U";
+  $("U_pay_company").textContent = f2(U2)+" U";
+  $("Profit_RMB").textContent = f2(P)+" RMB";
 
-  const tag=$("Tag");
-  tag.className="tag";
+  const tag = $("Tag");
+  tag.className = "tag";
 
-  if(P>0){
-    tag.classList.add("pos");
-    tag.textContent="✔ 赚钱";
-  }else if(P<0){
-    tag.classList.add("neg");
-    tag.textContent="✘ 亏钱";
-  }else{
-    tag.textContent="— 不赚不亏";
-  }
+  if(P>0){ tag.classList.add("pos"); tag.textContent="✔ 赚钱"; }
+  else if(P<0){ tag.classList.add("neg"); tag.textContent="✘ 亏钱"; }
+  else{ tag.textContent="— 不赚不亏"; }
 }
 
-["MYR_amt","B_M","A_U","M_per_U"]
-.forEach(id=>{
-  $(id).addEventListener("input",calc);
-  $(id).addEventListener("change",calc);
+["MYR_amt","B_M","A_U","M_per_U"].forEach(id=>{
+  $(id).addEventListener("input", calc);
+  $(id).addEventListener("change", calc);
 });
 
-calc();
+// 初始全空
+reset();
 </script>
 
 </body>
-
 </html>
